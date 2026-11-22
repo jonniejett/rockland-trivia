@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rockland Trivia – Jonnie's Game Room</title>
+<style>
+:root{
+  --ink:#111;
+  --bark-dark:#4a3324; --bark:#7a573c; --bark-light:#c9a57f; --bark-pale:#dcc09c;
+  --moss:#4f7a2b; --berry:#a3271d;
+  /* bark grain: stretched noise makes long vertical fibers */
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.55' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;color:var(--ink);
+  background:var(--grain),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 3px,transparent 3px 17px,rgba(0,0,0,.12) 17px 19px,transparent 19px 41px),
+    linear-gradient(90deg,#4f3727,#6b4b33 25%,#553a28 50%,#6d4c34 75%,#4f3727);
+  background-attachment:fixed}
+.wrap{max-width:640px;margin:0 auto;padding:14px 14px 40px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top a{color:#f1e3cf;text-decoration:none;font-family:system-ui,-apple-system,sans-serif;font-size:14px;opacity:.85}
+.plank{position:relative;border-radius:14px;padding:22px 20px;
+  background:var(--grain),
+    repeating-linear-gradient(90deg,rgba(60,35,15,.16) 0 2px,transparent 2px 11px,rgba(60,35,15,.08) 11px 13px,transparent 13px 27px),
+    linear-gradient(180deg,var(--bark-pale),var(--bark-light));
+  background-blend-mode:multiply,normal,normal;
+  border:3px solid #2e1f15;box-shadow:inset 0 0 0 2px rgba(255,240,215,.35),inset 0 0 30px rgba(70,40,15,.35),0 10px 30px rgba(0,0,0,.45)}
+h1{margin:0;text-align:center;font-size:clamp(34px,9vw,54px);font-weight:900;letter-spacing:.04em;color:var(--ink);
+  text-shadow:0 1px 0 rgba(255,240,215,.6),0 -1px 0 rgba(0,0,0,.25);text-transform:uppercase;line-height:1}
+.sub{text-align:center;font-style:italic;margin:8px 0 0;font-size:17px;font-weight:600}
+.btn{display:block;width:100%;font:700 19px/1.25 Georgia,serif;color:var(--ink);cursor:pointer;text-align:left;
+  padding:14px 16px;margin:10px 0;border-radius:12px;border:2px solid #2e1f15;
+  background:var(--grain),linear-gradient(180deg,#e8d3b2,#cfae86);background-blend-mode:multiply,normal;
+  box-shadow:0 3px 0 #2e1f15;transition:transform .08s}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #2e1f15}
+.btn.go{text-align:center;font-size:22px;letter-spacing:.03em}
+.btn.right{background:linear-gradient(180deg,#9ccf72,#6fa344);border-color:#1f3a0c}
+.btn.wrong{background:linear-gradient(180deg,#e7867b,#c2493b);border-color:#4a0f09}
+.btn.dim{opacity:.55}
+.btn:disabled{cursor:default}
+.hud{display:flex;justify-content:space-between;font:800 16px/1 system-ui,-apple-system,sans-serif;margin-bottom:10px}
+.timer{height:12px;border-radius:999px;background:rgba(0,0,0,.18);border:2px solid #2e1f15;overflow:hidden;margin-bottom:16px}
+.timer i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#4f7a2b,#86b04c);transition:width .1s linear}
+.timer i.low{background:linear-gradient(90deg,#a3271d,#d0603c)}
+.q{font-size:clamp(21px,5.5vw,26px);font-weight:800;line-height:1.3;margin:0 0 8px}
+.fact{margin-top:12px;padding:12px 14px;border-radius:10px;border:2px dashed #2e1f15;background:rgba(255,248,235,.45);font-size:16.5px;line-height:1.45}
+.fact b{display:block;margin-bottom:3px}
+.big{text-align:center;font-size:64px;margin:6px 0}
+.score{text-align:center;font-size:44px;font-weight:900;margin:4px 0}
+.center{text-align:center;font-size:18px;line-height:1.45}
+.row{display:flex;gap:10px}
+.row .btn{text-align:center}
+.small{font:600 14px/1.4 system-ui,-apple-system,sans-serif;text-align:center;margin-top:14px}
+.pop{animation:pop .3s ease-out}
+@keyframes pop{from{transform:scale(.96);opacity:.4}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="https://jonniejett.github.io/">← Game Room</a><a href="#" onclick="home();return false">Start over</a></div>
+  <div class="plank" id="app"></div>
+</div>
+
+<script>
+/* Question bank. Each: q = question, a = answers, c = index of correct answer, f = fun fact */
+const BANK = [
+  {q:"What is the county seat of Rockland County?", a:["Nyack","New City","Suffern","Spring Valley"], c:1, f:"The county seat moved from Tappan to New City in 1798, the year Rockland became its own county."},
+  {q:"How many towns make up Rockland County?", a:["Three","Four","Five","Seven"], c:2, f:"Clarkstown, Haverstraw, Orangetown, Ramapo and Stony Point."},
+  {q:"In 1798, Rockland split off from which county?", a:["Westchester","Orange","Putnam","Bergen"], c:1, f:"The Ramapo Mountains made it hard to govern both sides as one county, so Rockland broke away from Orange."},
+  {q:"Where does the name “Rockland” come from?", a:["A Dutch family name","“Rocky land”","A rock quarry company","A Lenape chief"], c:1, f:"Early settlers described it as rocky land, thanks largely to the Hudson River Palisades."},
+  {q:"Which is the most populous town in Rockland?", a:["Clarkstown","Orangetown","Ramapo","Haverstraw"], c:2, f:"Ramapo had nearly 149,000 people in the 2020 census, the most of any New York town outside Long Island."},
+  {q:"Outside New York City, how does Rockland rank in size among New York counties?", a:["The largest","Middle of the pack","The smallest","Second largest"], c:2, f:"Rockland is the smallest county by area in the state, not counting New York City’s boroughs."},
+  {q:"What is Rockland County’s area code?", a:["914","845","201","516"], c:1, f:"845 covers much of the lower Hudson Valley west of the river."},
+  {q:"The oldest lighthouse on the Hudson River is in which Rockland town?", a:["Stony Point","Haverstraw","Nyack","Piermont"], c:0, f:"The Stony Point Lighthouse was first lit on December 1, 1826."},
+  {q:"Which American general led the 1779 midnight attack at Stony Point?", a:["Benedict Arnold","“Mad” Anthony Wayne","Nathanael Greene","Henry Knox"], c:1, f:"Wayne’s troops stormed the British fort with bayonets in the dark on July 15–16, 1779."},
+  {q:"Which British officer was executed as a spy in Tappan in 1780?", a:["John Burgoyne","Major John André","Banastre Tarleton","Charles Cornwallis"], c:1, f:"André was caught carrying plans for West Point that he got from Benedict Arnold."},
+  {q:"Major André was helping which American traitor?", a:["Benedict Arnold","Aaron Burr","Charles Lee","Silas Deane"], c:0, f:"Arnold planned to hand West Point to the British. He escaped, but André was captured."},
+  {q:"George Washington used which Tappan house as his headquarters?", a:["The ’76 House","The DeWint House","Van Cortlandt Manor","The Old Stone House"], c:1, f:"Washington stayed at the DeWint House several times during the Revolution."},
+  {q:"What is the official name of the bridge from Rockland to Westchester today?", a:["Tappan Zee II","George Washington Bridge","Governor Mario M. Cuomo Bridge","Bear Mountain Bridge"], c:2, f:"Most locals still call it the Tappan Zee."},
+  {q:"In Dutch, what does “Zee” in Tappan Zee mean?", a:["Bridge","Sea","River","Hill"], c:1, f:"The Hudson is very wide there, so early Dutch settlers called it the Tappan “sea.”"},
+  {q:"The original Tappan Zee Bridge opened in what year?", a:["1931","1955","1964","1978"], c:1, f:"It carried traffic for over 60 years before its replacement opened."},
+  {q:"Which highway crosses the Hudson on that bridge?", a:["Palisades Parkway","Route 9W","NYS Thruway","Route 59"], c:2, f:"The Thruway (I-87/I-287) crosses the river between Nyack and Tarrytown."},
+  {q:"The Palisades Center mall is in which hamlet?", a:["Nanuet","West Nyack","Orangeburg","Suffern"], c:1, f:"It’s one of the largest malls in the country."},
+  {q:"In the 1800s, Rockland Lake was famous for what business?", a:["Silver mining","Harvesting ice for NYC","Whaling","Cotton mills"], c:1, f:"Ice was cut from the frozen lake and shipped down the Hudson to keep New York City’s iceboxes cold."},
+  {q:"Haverstraw was once famous for making what?", a:["Glass","Bricks","Cars","Textiles"], c:1, f:"Clay along Haverstraw Bay fed dozens of brickyards. Many NYC buildings are made of Haverstraw brick."},
+  {q:"Which famous American painter was born in Nyack?", a:["Norman Rockwell","Edward Hopper","Andy Warhol","Georgia O’Keeffe"], c:1, f:"Hopper was born in Nyack in 1882. His boyhood home is now a museum."},
+  {q:"Which acting legend, the “First Lady of the American Theatre,” lived in Nyack?", a:["Helen Hayes","Katharine Hepburn","Ethel Barrymore","Lillian Gish"], c:0, f:"Helen Hayes Hospital in West Haverstraw is named after her."},
+  {q:"Pearl River is famous for its big parade on which holiday?", a:["Fourth of July","Thanksgiving","St. Patrick’s Day","Memorial Day"], c:2, f:"Pearl River’s St. Patrick’s Day parade draws huge crowds every year."},
+  {q:"The historic Lafayette Theatre is in which village?", a:["Nyack","Suffern","Haverstraw","Piermont"], c:1, f:"The single-screen movie palace has been showing films since the 1920s."},
+  {q:"The first railroad across Rockland County, built in 1841, started where?", a:["Piermont","Nyack","Haverstraw","Stony Point"], c:0, f:"It ran from Piermont to Ramapo and later stretched all the way to Lake Erie."},
+  {q:"Which train line stops in Pearl River, Nanuet and Spring Valley?", a:["Port Jervis Line","Pascack Valley Line","Harlem Line","Hudson Line"], c:1, f:"The Pascack Valley Line runs to Hoboken, with connections to New York City."},
+  {q:"Which is the smallest village in Rockland by population?", a:["Hillburn","Piermont","Grand View-on-Hudson","Upper Nyack"], c:2, f:"Grand View-on-Hudson has only about 270 residents along a narrow strip of riverfront."},
+  {q:"About how much of Rockland County is parkland?", a:["Almost none","About a tenth","Nearly a third","Over half"], c:2, f:"Harriman State Park, Rockland Lake, Hook Mountain and the Palisades add up fast."},
+  {q:"About how many people lived in Rockland in the 2020 census?", a:["About 150,000","About 338,000","About 600,000","About 1 million"], c:1, f:"The 2020 census counted 338,329 people."},
+  {q:"Dominican University is located in which hamlet?", a:["Sparkill","Orangeburg","Nyack","New City"], c:1, f:"It sits in Orangeburg, in the Town of Orangetown."},
+  {q:"Hook Mountain is part of which famous line of cliffs?", a:["The Catskills","The Palisades","The Shawangunks","The Poconos"], c:1, f:"The Palisades run along the Hudson from New Jersey up into Rockland."},
+  {q:"Which Revolutionary-era tavern in Tappan held Major André as a prisoner?", a:["Fraunces Tavern","The ’76 House","The DeWint House","The Old ’76 Inn of Nyack"], c:1, f:"The ’76 House is one of the oldest taverns in the country and still serves food today."},
+  {q:"What year did Rockland officially become a county?", a:["1683","1776","1798","1825"], c:2, f:"Rockland was founded on February 23, 1798."}
+];
+const ROUND=10, SECS=20, BEST_KEY='rocklandTrivia.best';
+let S=null, timer=null;
+const app=document.getElementById('app');
+const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function getBest(){ try{ return +localStorage.getItem(BEST_KEY)||0; }catch(e){ return 0; } }
+function setBest(v){ try{ localStorage.setItem(BEST_KEY,v); }catch(e){} }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function home(){
+  clearInterval(timer);
+  const best=getBest();
+  app.innerHTML=`<div class="pop"><h1>Rockland<br>Trivia</h1>
+    <p class="sub">How well do you know the county?</p>
+    <div class="big">🌳</div>
+    <p class="center">${ROUND} questions · ${SECS} seconds each<br>Answer faster for bonus points.</p>
+    ${best?`<p class="center"><b>Your best: ${best} points</b></p>`:''}
+    <button class="btn go" onclick="start()">Start ▸</button></div>`;
+}
+function start(){
+  // shuffle questions, and shuffle each question's answers
+  const qs=shuffle(BANK).slice(0,ROUND).map(x=>{
+    const order=shuffle([0,1,2,3]);
+    return {q:x.q, a:order.map(i=>x.a[i]), c:order.indexOf(x.c), f:x.f};
+  });
+  S={qs,i:0,score:0,right:0};
+  ask();
+}
+function ask(){
+  const Q=S.qs[S.i];
+  S.left=SECS*10; S.done=false;
+  app.innerHTML=`<div class="pop">
+    <div class="hud"><span>Question ${S.i+1} of ${ROUND}</span><span>${S.score} pts</span></div>
+    <div class="timer"><i id="bar"></i></div>
+    <p class="q">${esc(Q.q)}</p>
+    ${Q.a.map((t,k)=>`<button class="btn" id="o${k}" onclick="pick(${k})">${esc(t)}</button>`).join('')}
+    <div id="after"></div></div>`;
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    S.left--; const bar=document.getElementById('bar');
+    if(bar){ bar.style.width=(S.left/(SECS*10)*100)+'%'; bar.classList.toggle('low',S.left<=50); }
+    if(S.left<=0) pick(-1);
+  },100);
+}
+function pick(k){
+  if(S.done) return; S.done=true; clearInterval(timer);
+  const Q=S.qs[S.i], ok=k===Q.c;
+  let gained=0;
+  if(ok){ gained=100+Math.round(50*S.left/(SECS*10)); S.score+=gained; S.right++; }
+  Q.a.forEach((_,j)=>{ const b=document.getElementById('o'+j); b.disabled=true;
+    if(j===Q.c) b.classList.add('right'); else if(j===k) b.classList.add('wrong'); else b.classList.add('dim'); });
+  try{ navigator.vibrate&&navigator.vibrate(ok?20:[40,40,40]); }catch(e){}
+  const head=ok?`✅ Correct! +${gained}`:(k<0?'⏰ Time’s up!':'❌ Not quite.');
+  document.getElementById('after').innerHTML=`<div class="fact pop"><b>${head}</b>${esc(Q.f)}</div>
+    <button class="btn go" onclick="next()">${S.i+1<ROUND?'Next question ▸':'See my score ▸'}</button>`;
+}
+function next(){ S.i++; if(S.i<ROUND) ask(); else finish(); }
+function finish(){
+  const best=getBest(), record=S.score>best; if(record) setBest(S.score);
+  const r=S.right;
+  const title= r===ROUND?'Rockland Legend!': r>=8?'True Rocklander': r>=5?'Weekend Visitor':'Just Passing Through on the Thruway';
+  const icon = r===ROUND?'🏆': r>=8?'🌲': r>=5?'🍂':'🚗';
+  app.innerHTML=`<div class="pop"><div class="big">${icon}</div><h1 style="font-size:clamp(28px,7vw,40px)">${title}</h1>
+    <div class="score">${S.score} pts</div>
+    <p class="center">You got <b>${r} of ${ROUND}</b> right.<br>${record?'<b>New personal best!</b>':`Your best: ${best} pts`}</p>
+    <div class="row"><button class="btn go" onclick="start()">Play again</button></div>
+    <p class="small">Every round mixes up the questions.</p></div>`;
+}
+home();
+</script>
+</body>
+</html>
